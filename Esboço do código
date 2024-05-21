@@ -1,0 +1,99 @@
+section .text                         ; Seção de código
+
+global _start                       ; Ponto de entrada do programa
+
+_start:                             ; Rótulo _start
+
+    push ebp                        ; Salva o valor de ebp na pilha
+    mov ebp, esp                    ; Define ebp como o ponteiro para o topo da pilha
+
+    mov eax, 7                      ; Define o número de discos (7)
+    push dword 2                    ; Empilha a torre auxiliar
+    push dword 3                    ; Empilha a torre destino
+    push dword 1                    ; Empilha a torre origem
+    push eax                        ; Empilha o número de discos
+    call torre_hanoi                ; Chama a função para resolver o problema de Hanoi
+
+    mov eax, 1                      ; Prepara para sair do programa
+    mov ebx, 0                      ; Código de sucesso
+    int 128                         ; Chama a interrupção do kernel
+
+torre_hanoi:                        ; Função recursiva para resolver o problema de Hanoi
+
+    push ebp                        ; Salva o valor de ebp na pilha
+    mov ebp, esp                    ; Define ebp como o ponteiro para o topo da pilha
+
+    mov eax, [ebp+8]                ; Obtém o número de discos restantes
+    cmp eax, 0                      ; Verifica se há discos restantes
+    je desempilhar                  ; Se não há, desempilha e retorna
+
+    push dword [ebp+16]             ; Empilha a torre auxiliar
+    push dword [ebp+20]             ; Empilha a torre destino
+    push dword [ebp+12]             ; Empilha a torre origem
+    dec eax                         ; Decrementa o número de discos
+    push dword eax                  ; Empilha o novo número de discos restantes
+    call torre_hanoi                ; Chama recursivamente para mover os discos
+    add esp, 16                     ; Limpa os parâmetros da pilha
+
+    push dword [ebp+16]             ; Empilha a torre destino
+    push dword [ebp+12]             ; Empilha a torre origem
+    push dword [ebp+8]              ; Empilha o disco a ser movido
+    call exibir_movimento           ; Chama a função para exibir o movimento
+    add esp, 12                     ; Limpa os parâmetros da pilha
+
+    push dword [ebp+12]             ; Empilha a torre origem
+    push dword [ebp+16]             ; Empilha a torre trabalho
+    push dword [ebp+20]             ; Empilha a torre destino
+    mov eax, [ebp+8]                ; Obtém o número de discos restantes
+    dec eax                         ; Decrementa o número de discos
+    push dword eax                  ; Empilha o novo número de discos restantes
+    call torre_hanoi                ; Chama recursivamente para mover os discos
+
+desempilhar:
+    mov esp, ebp                    ; Restaura o ponteiro da pilha
+    pop ebp                         ; Desempilha ebp
+    ret                             ; Retorna
+
+exibir_movimento:                   ; Função para exibir o movimento do disco
+
+    push ebp                        ; Salva o valor de ebp na pilha
+    mov ebp, esp                    ; Define ebp como o ponteiro para o topo da pilha
+
+    mov eax, [ebp + 8]              ; Obtém o número do disco a ser movido
+    add al, 48                      ; Converte para o caractere ASCII
+    mov [disco_var], al             ; Armazena o caractere em disco_var
+
+    mov eax, [ebp + 12]             ; Obtém o número da torre de saída
+    add al, 64                      ; Converte para o caractere ASCII
+    mov [torre_saida_var], al       ; Armazena o caractere em torre_saida_var
+
+    mov eax, [ebp + 16]             ; Obtém o número da torre de destino
+    add al, 64                      ; Converte para o caractere ASCII
+    mov [torre_ida_var], al         ; Armazena o caractere em torre_ida_var
+
+    mov edx, comprimento            ; Obtém o comprimento da mensagem
+    mov ecx, mensagem               ; Obtém o endereço da mensagem
+    mov ebx, 1                      ; Saída padrão (stdout)
+    mov eax, 4                      ; Chama a interrupção para imprimir
+    int 128                         ; Interação com o kernel
+
+    mov esp, ebp                    ; Restaura o ponteiro da pilha
+    pop ebp                         ; Desempilha ebp
+    ret                             ; Retorna
+
+section .data                       ; Seção de dados
+
+mensagem:                           ; Mensagem a ser impressa
+    db        "disc: "   
+disco_var:                          ; Variável para armazenar o caractere do disco
+    db        " "
+    db        "   "                 
+torre_saida_var:                    ; Variável para armazenar o caractere da torre de saída
+    db        " "  
+    db        " -> "     
+torre_ida_var:                      ; Variável para armazenar o caractere da torre de destino
+    db        " ", 0xa  
+comprimento    equ       $-mensagem ; Comprimento da mensagem
+```
+
+Espero que esses comentários ajudem a entender o funcionamento do código!
