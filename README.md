@@ -5,13 +5,13 @@ Este projeto se dedica a criar um algoritmo que resolve o quebra-cabeça clássi
 
 Objetivo do projeto:
 O objetivo deste projeto é desenvolver uma solução recursiva para o problema da Torre de Hanoi utilizando a linguagem Assembly.
-## Como rodar :arrow_forward:
+## Método para rodar o programa
 - Utilize o compilador Nasm x86(32bits) de sua preferência;
 - Execute o programa e verifique a saída do Terminal.
 
-## Contribuidores 
+## Contribuidores do projeto
  - Gleybson Ricardo
  - 
 
-## Professor 📏
+## Professor 
  - Sergio Vanderlei Cavalcante
