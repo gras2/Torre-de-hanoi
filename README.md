@@ -11,7 +11,7 @@ O objetivo deste projeto é desenvolver uma solução recursiva para o problema 
 
 ## Contribuidores do projeto
  - Gleybson Ricardo
- - Lucas
+ - Lucas Américo
 
 ## Professor 
  - Sergio Vanderlei Cavalcante
