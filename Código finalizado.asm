@@ -3,8 +3,8 @@ section .bss
     buffer resb 16            ; buffer para armazenamento temporário
 
 section .data
-    msg_entrada db "Digite o numero de discos (maximo 2 digitos):", 0
-    msg_saida db "Algoritmo da Torre de Hanoi com ", 0
+    msg_entrada db "Digite o numero de discos:", 0
+    msg_saida db "Torre de Hanoi com ", 0
     msg_mov db "Mova disco ", 0
     msg_de db " da Torre ", 0
     msg_para db " para a Torre ", 0
