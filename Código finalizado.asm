@@ -1,261 +1,153 @@
-section .bss
-    num_discos resb 2          ; espaço para armazenar o número de discos (máximo dois dígitos)
-    buffer resb 16            ; buffer para armazenamento temporário
-
-section .data
-    msg_entrada db "Digite o numero de discos:", 0
-    msg_saida db "Torre de Hanoi com ", 0
-    msg_mov db "Mova disco ", 0
-    msg_de db " da Torre ", 0
-    msg_para db " para a Torre ", 0
-    msg_pulalinha db 10, 0
-    msg_final db "Concluido!", 0
-
 section .text
-    extern GetStdHandle, ReadConsoleA, WriteConsoleA, ExitProcess
-    extern lstrlenA
-    global _start
 
-section .idata
-    dd 0, 0, 0, 0, 0
-    dd 0, 0, 0, 0, 0
-    dd 0, 0, 0, 0, 0
-    dd 0, 0, 0, 0, 0
-    dd 0, 0, 0, 0, 0
+    global _start               
+    
+;main
+    _start:                             
 
-_start:
-    ; obter os handles para entrada e saída padrão
-    push -11                 ; STD_INPUT_HANDLE
-    call GetStdHandle
-    mov [stdin_handle], eax
+        push ebp                        ; salva o registrador base na pilha
+        mov ebp, esp                    ; ebp recebe o ponteiro para o topo da pilha
 
-    push -11                 ; STD_OUTPUT_HANDLE
-    call GetStdHandle
-    mov [stdout_handle], eax
+        ; Mensagem inicial
+        mov edx,len                     ; recebe o tamanho da mensagem
+        mov ecx,menu                    ; recebe a mensagem
+        mov ebx,1                       ; stdin
+        mov eax,4                       ; systemcall sys.write
+        int 0x80                        ; Executa interrupção
 
-    ; solicitar entrada do usuário
-    push msg_entrada
-    call lstrlenA
-    mov edx, eax             ; comprimento da string
-    mov ecx, msg_entrada
-    mov ebx, [stdout_handle]
-    call print_string
+        ;Recebe entrada
+        mov edx, 5                      ; tamanho da entrada 
+        mov ecx, disk                   ; armazenamento em 'disk'
+        mov ebx, 0                      ; entrada padrão
+        mov eax, 3                      ; informa que serÃ¡ uma leitura           
+        int 0x80                        ; Executa interrupção
+        
+        mov edx, disk                   ; eax recebe quantidade de disco
+        call    _atoi
 
-    ; ler entrada do usuário
-    mov ecx, num_discos
-    mov edx, 2
-    call read_input
+        ; Empilha as 3 torres
+        push dword 0x2                  ; torre auxiliar 
+        push dword 0x3                  ; torre de destino 
+        push dword 0x1                  ; torre de origem 
+        push eax                        ; numero de discos
 
-    ; converter entrada de string para número
-    movzx eax, byte [num_discos]
-    sub eax, '0'
-    movzx ebx, byte [num_discos + 1]
-    cmp ebx, 10
-    je .skip_second_digit     ; se o segundo dígito for nulo, pular
-    sub ebx, '0'
-    imul eax, 10
-    add eax, ebx
-.skip_second_digit:
-    mov [num_discos], eax      ; armazenar número de discos em num_discs
+        call Hanoi                      ; Chama a função Hanoi
 
-    ; exibir mensagem de início
-    push msg_saida
-    call lstrlenA
-    mov edx, eax
-    mov ecx, msg_saida
-    mov ebx, [stdout_handle]
-    call print_string
+        ; Finaliza
+        mov eax, 1                      ; Saida do sistema
+        mov ebx, 0                      ; saida padrão  
+        int 0x80                        ; Executa interrupção
 
-    ; converter número de discos para string e exibir
-    mov eax, [num_discos]
-    call int_to_str
-    mov edx, 1                ; um dígito
-    mov ecx, buffer
-    mov ebx, [stdout_handle]
-    call print_string
 
-    ; exibir nova linha
-    mov edx, 1
-    mov ecx, msg_pulalinha
-    mov ebx, [stdout_handle]
-    call print_string
+; Converte para inteiro
 
-    ; chamada recursiva para resolver a Torre de Hanoi
-    mov eax, [num_discos]
-    push eax
-    push 'C'
-    push 'B'
-    push 'A'
-    call hanoi
+_atoi:
+    xor     eax, eax                    ; Limpa o registrador 
+    mov     ebx, 10                     ; EBX vai guardar o valor a ser multiplicado
+    
+    .loop:
+        movzx   ecx, byte [edx]         ; Move um byte de EDX para ECX
+        inc     edx                     ; Incrementa ponteiro edx
+        cmp     ecx, '0'                ; Compara ECX com '0'
+        jb      .done                   ; Se menor, pula pra linha .done
+        cmp     ecx, '9'                ; Compara ECX com '9'
+        ja      .done                   ; Se maior, pule pra linha .done
+        sub     ecx, '0'                ; Transforma em inteiro(subtração em binário)
+        imul    eax, ebx                ; Usa o valor de ebx para multiplicar eax
+        add     eax, ecx                ; Adiciona o valor de ECX a EAX
+        jmp     .loop                   ; Pula para começo do loop, que continua até condição ser cumprida
+    
+    .done:
+        ret 
 
-    ; exibir mensagem de conclusão
-    push msg_final
-    call lstrlenA
-    mov edx, eax
-    mov ecx, msg_final
-    mov ebx, [stdout_handle]
-    call print_string
 
-    ; sair do programa
-    push 0                   ; código de saída 0
-    call ExitProcess
+;Função recursiva de Hanoi
 
-; Procedimento recursivo para resolver a Torre de Hanoi
-hanoi:
-    push ebp
-    mov ebp, esp
-    sub esp, 4                ; espaço para variável local
+    Hanoi: 
 
-    mov eax, [ebp + 20]       ; número de discos
-    cmp eax, 1
-    je .mover_disco
 
-    ; chamada recursiva para mover (n-1) discos de origem para auxiliar
-    dec eax
-    push eax
-    push dword [ebp + 16]     ; destino
-    push dword [ebp + 12]     ; auxiliar
-    push dword [ebp + 8]      ; origem
-    call hanoi
+        ; Prólogo
+        push ebp                        
+        mov ebp,esp                     
 
-    ; mover o disco restante de origem para destino
-    inc eax
-.mover_disco:
-    push eax
-    push dword [ebp + 16]
-    push dword [ebp + 8]
-    call move
-    add esp, 12               ; limpar a pilha
+        mov eax,[ebp+8]                 ; pega o a posição do primeiro elemento da pilha e mov para eax
+        cmp eax,0x0                     ; compara com 0(em hexdec)
+        jle fim                         ; Se <= 0, finaliza
+        
+        ;Recurssão inicial(n-1 para torre de auxilio)
+        dec eax                         ; decrementa numero de discos a ser movido nesta etapa em 1
+        push dword [ebp+16]             
+        push dword [ebp+20]             
+        push dword [ebp+12]             
+        push dword eax                  ; poe eax = n-1  para iniciar recursividade
+        call Hanoi                      ; Chamada recursiva
 
-    ; chamada recursiva para mover (n-1) discos de auxiliar para destino
-    dec eax
-    push eax
-    push dword [ebp + 16]     ; destino
-    push dword [ebp + 8]      ; origem
-    push dword [ebp + 12]     ; auxiliar
-    call hanoi
+        ;Movimento do maior disco para a torre destino
+        add esp,12                      
+        push dword [ebp+16]            
+        push dword [ebp+12]             
+        push dword [ebp+8]              
+        call print                      ; Chama a função 'print'
+        
+        ;Recurssão final(n-1 da auxilio para final)
+        add esp,12                      ; libera mais 12 bits de espaço (20 - 8) Último e primeiro parâmetro
+        push dword [ebp+12]             
+        push dword [ebp+16]             
+        push dword [ebp+20]             
+        mov eax,[ebp+8]                 ; move para o registrador eax o espaço reservado ao número de discos atuais
+        dec eax                         ; decrementa numero de discos a ser movido nesta etapa em 1
 
-    add esp, 4                ; limpar a pilha
-    mov esp, ebp
-    pop ebp
-    ret
+    push dword eax                      ; poe eax na pilha
+        call Hanoi                      ; (recursividade)
 
-; Procedimento para imprimir o movimento de um disco
-move:
-    push ebp
-    mov ebp, esp
+    fim: 
+        
+        mov esp,ebp                     ; Move o valor de ebp para esp (guarda em outro registrador)
+        pop ebp                         ; Remove da pilha (desempilha) o ebp
+        ret                             ; Retorna a função de origem (antes de ter chamado a função 'fim')
 
-    push msg_mov
-    call lstrlenA
-    mov edx, eax
-    mov ecx, msg_mov
-    mov ebx, [stdout_handle]
-    call print_string
+    print:
+        ; Prólogo
+        push ebp                        
+        mov ebp, esp                    
+        mov eax, [ebp + 12]             ; Torre auxiliar
+        add al, '0'                     ; converte para ASCII
+        mov [torre_origem], al          ; movimento: movendo o conteudo de al para [torre_origem]
 
-    ; converter número do disco para string e imprimir
-    mov eax, [ebp + 8]
-    call int_to_str
-    mov edx, 1                ; um dígito
-    mov ecx, buffer
-    mov ebx, [stdout_handle]
-    call print_string
+        mov eax, [ebp + 16]             ; torre de destino
+        add al, '0'                     ; converte para ASCII
+        mov [torre_destino], al         ; movimento: movendo o conteudo de al para [torre_destino]
 
-    ; imprimir " da Torre "
-    push msg_de
-    call lstrlenA
-    mov edx, eax
-    mov ecx, msg_de
-    mov ebx, [stdout_handle]
-    call print_string
+        mov edx, lenght                 ; tamanho da mensagem formatada
+        mov ecx, msg                    ; mensagem formatada
+        mov ebx, 1                      ; dá permissão para a saida
+        mov eax, 4                      ; informa que será uma escrita no ecrã
+        int 0x80                        ; Interrupção para kernel do linux
 
-    ; imprimir torre de origem
-    mov edx, 1
-    mov ecx, [ebp + 12]
-    mov ebx, [stdout_handle]
-    call print_string
 
-    ; imprimir " para a Torre "
-    push msg_para
-    call lstrlenA
-    mov edx, eax
-    mov ecx, msg_para
-    mov ebx, [stdout_handle]
-    call print_string
+        ;Epílogo
+        mov     esp, ebp                
+        pop     ebp                     
+        ret                             
 
-    ; imprimir torre de destino
-    mov edx, 1
-    mov ecx, [ebp + 16]
-    mov ebx, [stdout_handle]
-    call print_string
 
-    ; imprimir nova linha
-    mov edx, 1
-    mov ecx, msg_pulalinha
-    mov ebx, [stdout_handle]
-    call print_string
-
-    mov esp, ebp
-    pop ebp
-    ret
-
-; Função para converter inteiro para string
-int_to_str:
-    mov ebx, buffer
-    add eax, '0'
-    mov [ebx], al
-    mov byte [ebx + 1], 0
-    ret
-
-; Função para imprimir strings
-print_string:
-    push eax
-    push ecx
-    push edx
-    push ebx
-
-    mov eax, [esp + 20]       ; handle
-    mov ebx, eax
-    mov eax, [esp + 20 + 4]   ; buffer
-    mov ecx, eax
-    mov eax, [esp + 20 + 8]   ; length
-    mov edx, eax
-    push 0                    ; lpNumberOfCharsWritten (NULL)
-    push edx                  ; nNumberOfCharsToWrite
-    push ecx                  ; lpBuffer
-    push ebx                  ; hConsoleOutput
-    call WriteConsoleA
-
-    pop ebx
-    pop edx
-    pop ecx
-    pop eax
-    ret
-
-; Função para ler entrada
-read_input:
-    push eax
-    push ecx
-    push edx
-    push ebx
-
-    mov eax, [stdin_handle]   ; handle
-    mov ebx, eax
-    mov eax, [esp + 20 + 4]   ; buffer
-    mov ecx, eax
-    mov eax, [esp + 20 + 8]   ; length
-    mov edx, eax
-    push 0                    ; lpNumberOfCharsRead (NULL)
-    push edx                  ; nNumberOfCharsToRead
-    push ecx                  ; lpBuffer
-    push ebx                  ; hConsoleInput
-    call ReadConsoleA
-
-    pop ebx
-    pop edx
-    pop ecx
-    pop eax
-    ret
-
+;Declara constantes
 section .data
-    stdin_handle dd 0
-    stdout_handle dd 0
+   
+    menu db 'Digite o número de discos: ' ,0xa          ; mensagem inicial
+    len equ $-menu                                      ; tamanho da mensagem inicial
+
+
+    msg:
+
+                          db        "Torre de partida: "                      
+        torre_origem:      db        " "  
+                          db        " --- Torre de Destino: "     
+        torre_destino:     db        " ", 0xa  
+        lenght            equ       $-msg
+
+
+;Declara variáveis
+section .bss
+
+    disk resb 5                 ; Armazenará número de discos digitados
